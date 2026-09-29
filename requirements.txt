@@ -1,0 +1,23 @@
+# Framework Web y Servidor
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# Variables de Entorno y Configuración (.env)
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv>=1.0.1
+
+# Inyección de Dependencias
+dependency-injector>=4.42.0
+
+# ORM y Migraciones de Base de Datos
+sqlalchemy>=2.0.35
+alembic>=1.13.0
+
+# Drivers de Base de Datos (PostgreSQL)
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+
+# Cliente HTTP y Pruebas
+httpx>=0.27.0
+pytest>=8.3.0
