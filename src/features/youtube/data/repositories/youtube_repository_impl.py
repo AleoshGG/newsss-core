@@ -22,6 +22,17 @@ class YouTubeRepositoryImpl(YouTubeRepository):
         models = result.scalars().all()
         return [to_entity(m) for m in models]
 
+    async def find_recent(self, limit: int = 50, offset: int = 0) -> list[YouTubeVideoDataEntity]:
+        stmt = (
+            select(YouTubeVideoModel)
+            .order_by(YouTubeVideoModel.published_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+        return [to_entity(m) for m in models]
+
     async def delete_all_before_date(self, date: datetime) -> int:
         stmt = delete(YouTubeVideoModel).where(YouTubeVideoModel.published_at < date)
         result = await self.session.execute(stmt)

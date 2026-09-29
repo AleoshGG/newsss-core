@@ -15,5 +15,9 @@ class YouTubeRepository(ABC):
         pass
 
     @abstractmethod
+    async def find_recent(self, limit: int = 50, offset: int = 0) -> list[YouTubeVideoDataEntity]:
+        pass
+
+    @abstractmethod
     async def delete_all_before_date(self, date: datetime) -> int:
         pass
