@@ -27,35 +27,35 @@ def parse_iso_duration(duration: str) -> int:
 
 class YouTubeFetcherUseCase:
     """
-    Caso de uso para buscar, filtrar y guardar videos de YouTube basados en una configuración.
+    Use case to fetch, filter, and save YouTube videos based on configuration.
     """
 
     def __init__(self, repository: YouTubeRepository, api_key: str):
         self.repository = repository
         self.api_key = api_key
         if not self.api_key:
-            raise ValueError("Falta configurar YOUTUBE_API_KEY")
+            raise ValueError("YOUTUBE_API_KEY configuration is missing")
 
     async def execute(self, config: YouTubeSearchSettings) -> List[YouTubeVideoDataEntity]:
-        # Usamos un solo cliente para mantener un pool de conexiones abierto
-        # limits=httpx.Limits(max_connections=50) ayuda a manejar concurrencia
+        # We use a single client to maintain an open connection pool
+        # limits=httpx.Limits(max_connections=50) helps to manage concurrency
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
         async with httpx.AsyncClient(limits=limits) as client:
-            # Fase 1
+            # Phase 1: Channel handles resolution
             channel_ids = await self._resolve_channel_handles(client, config.channel_ids)
             
-            # Fase 2
+            # Phase 2: Search candidates
             search_items = await self._fetch_search_candidates(client, config, channel_ids)
             if not search_items:
                 return []
             
-            # Fase 3
+            # Phase 3: Enrich details
             enriched_videos = await self._enrich_video_details_in_batch(client, search_items)
             
-            # Fase 4
+            # Phase 4: Filter and fetch transcripts
             final_videos = await self._filter_and_fetch_transcripts(client, enriched_videos, config)
             
-            # Fase 5: Guardado en BD concurrente (pool de conexiones en BD/Repository también se beneficiaría)
+            # Phase 5: Concurrent DB saving
             if final_videos:
                 save_tasks = [self.repository.save(video) for video in final_videos]
                 await asyncio.gather(*save_tasks)
@@ -77,7 +77,7 @@ class YouTubeFetcherUseCase:
                     if data.get("items"):
                         return data["items"][0]["id"]
                 except Exception as e:
-                    print(f"Error resolviendo el canal {handle}: {e}")
+                    print(f"Error resolving channel {handle}: {e}")
                 return None
             return raw_id
 
@@ -110,16 +110,16 @@ class YouTubeFetcherUseCase:
                 data = response.json()
                 return data.get("items", [])
             except Exception as e:
-                print(f"Error en búsqueda de YouTube API: {e}")
+                print(f"Error in YouTube API search: {e}")
                 return []
 
-        # 1. Búsqueda en canales específicos
+        # 1. Search in specific channels
         for channel_id in channel_ids:
             params = base_params.copy()
             params["channelId"] = channel_id
             search_promises.append(fetch_search(params))
 
-        # 2. Búsqueda global por keywords
+        # 2. Global search by keywords
         if config.keywords:
             for lang in languages_to_search:
                 params = base_params.copy()
@@ -135,7 +135,7 @@ class YouTubeFetcherUseCase:
         results_matrix = await asyncio.gather(*search_promises)
         search_items = [item for sublist in results_matrix for item in sublist]
 
-        # Deduplicar
+        # Deduplicate
         seen_ids = set()
         deduped_items = []
         for item in search_items:
@@ -144,7 +144,7 @@ class YouTubeFetcherUseCase:
                 seen_ids.add(video_id)
                 deduped_items.append(item)
 
-        # Ordenar más nuevos a más viejos
+        # Sort from newest to oldest
         deduped_items.sort(
             key=lambda x: datetime.fromisoformat(x["snippet"]["publishedAt"].replace("Z", "+00:00")),
             reverse=True
@@ -174,7 +174,7 @@ class YouTubeFetcherUseCase:
                 data = response.json()
                 return data.get("items", [])
             except Exception as e:
-                print(f"Error enriqueciendo videos en batch: {e}")
+                print(f"Error enriching videos in batch: {e}")
                 return []
 
         chunks = [valid_items[i:i + chunk_size] for i in range(0, len(valid_items), chunk_size)]
@@ -183,7 +183,7 @@ class YouTubeFetcherUseCase:
         for res in results:
             enriched_videos.extend(res)
 
-        # Mantener el orden
+        # Maintain original order
         order_map = {item["id"]["videoId"]: i for i, item in enumerate(valid_items)}
         enriched_videos.sort(key=lambda x: order_map.get(x["id"], 999))
 
@@ -198,8 +198,8 @@ class YouTubeFetcherUseCase:
         langs_to_try = config.languages if (config.languages and "any" not in config.languages) else ["es", "en"]
         foreign_chars_regex = re.compile(r'[\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF\u0400-\u04FF\u0600-\u06FF]')
 
-        # Proceso paralelo para transcripciones para maximizar la velocidad (concurrencia)
-        # Identificamos qué videos pasan los filtros primero
+        # Parallel transcript fetching to maximize speed
+        # First identify which videos pass the filters
         passed_videos = []
         for item in videos_details:
             video_id = item["id"]
@@ -236,7 +236,7 @@ class YouTubeFetcherUseCase:
             snippet = item["snippet"]
             stats = item.get("statistics", {})
 
-            transcript = 'Transcripción no disponible'
+            transcript = 'Transcript not available'
             
             # youtube_transcript_api is synchronous by default, we wrap in to_thread
             def fetch_t():
@@ -245,7 +245,7 @@ class YouTubeFetcherUseCase:
                     formatter = TextFormatter()
                     return formatter.format_transcript(transcript_list).replace('\n', ' ').strip()
                 except Exception:
-                    return 'Transcripción no disponible'
+                    return 'Transcript not available'
             
             transcript = await asyncio.to_thread(fetch_t)
             

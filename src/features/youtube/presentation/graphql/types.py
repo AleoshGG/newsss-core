@@ -47,12 +47,12 @@ class YouTubeVideoType:
         )
 
 
-@strawberry.input
+@strawberry.input(description="Configuration settings for searching YouTube videos.")
 class YouTubeSearchSettingsInput:
-    keywords: List[str]
-    channel_ids: Optional[List[str]] = strawberry.field(default_factory=list)
-    languages: Optional[List[str]] = strawberry.field(default_factory=lambda: ["any"])
-    max_results: int = 50
+    keywords: List[str] = strawberry.field(description="List of keywords to search for.")
+    channel_ids: Optional[List[str]] = strawberry.field(default_factory=list, description="Optional list of channel IDs to restrict the search.")
+    languages: Optional[List[str]] = strawberry.field(default_factory=lambda: ["any"], description="List of language codes to filter the results (e.g. 'en', 'es', or 'any').")
+    max_results: int = strawberry.field(default=50, description="Maximum number of videos to fetch and save.")
 
     def to_entity(self) -> YouTubeSearchSettings:
         return YouTubeSearchSettings(

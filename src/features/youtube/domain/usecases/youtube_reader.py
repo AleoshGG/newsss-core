@@ -4,8 +4,7 @@ from ..repositories.youtube_repository import YouTubeRepository
 
 class ReadRecentYouTubeVideosUseCase:
     """
-    Caso de uso para leer los videos guardados en la base de datos
-    ordenados del más reciente al más viejo.
+    Use case to read YouTube videos stored in the database, ordered from newest to oldest.
     """
     def __init__(self, repository: YouTubeRepository):
         self.repository = repository

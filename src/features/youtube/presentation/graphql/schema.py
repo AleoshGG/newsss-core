@@ -9,7 +9,7 @@ from .types import YouTubeVideoType, YouTubeSearchSettingsInput
 
 @strawberry.type
 class Query:
-    @strawberry.field
+    @strawberry.field(description="Retrieves the most recently fetched YouTube videos previously saved in the local database.")
     async def get_recent_youtube_videos(self, info: Info, limit: int = 50, offset: int = 0) -> List[YouTubeVideoType]:
         repo = info.context["youtube_repository"]
         use_case = ReadRecentYouTubeVideosUseCase(repository=repo)
@@ -19,9 +19,10 @@ class Query:
 
 @strawberry.type
 class Mutation:
-    @strawberry.field
+    @strawberry.field(description="Searches for YouTube videos using filters, enriches their metrics, fetches transcripts, and saves them to the local database.")
     async def fetch_and_save_youtube_videos(self, info: Info, config: YouTubeSearchSettingsInput) -> List[YouTubeVideoType]:
         repo = info.context["youtube_repository"]
+
         api_key = info.context["youtube_api_key"]
         
         use_case = YouTubeFetcherUseCase(repository=repo, api_key=api_key)
