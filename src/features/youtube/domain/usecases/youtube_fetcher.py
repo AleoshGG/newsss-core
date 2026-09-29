@@ -1,5 +1,5 @@
-import re
 import asyncio
+import re
 from datetime import datetime, timedelta, timezone
 from typing import List
 
@@ -9,7 +9,6 @@ from youtube_transcript_api.formatters import TextFormatter
 
 from ..entities.youtube_video_data_entity import YouTubeVideoDataEntity
 from ..entities.youtube_video_metrics import YouTubeVideoMetrics
-from ..entities.youtube_search_settings import YouTubeSearchSettings
 from ..repositories.youtube_repository import YouTubeRepository
 
 
@@ -27,7 +26,8 @@ def parse_iso_duration(duration: str) -> int:
 
 class YouTubeFetcherUseCase:
     """
-    Use case to fetch, filter, and save YouTube videos based on configuration.
+    Use case to fetch, filter, and save YouTube videos based on the configuration
+    stored in the database. The config is loaded automatically — no parameters needed.
     """
 
     def __init__(self, repository: YouTubeRepository, api_key: str):
@@ -36,31 +36,40 @@ class YouTubeFetcherUseCase:
         if not self.api_key:
             raise ValueError("YOUTUBE_API_KEY configuration is missing")
 
-    async def execute(self, config: YouTubeSearchSettings) -> List[YouTubeVideoDataEntity]:
+    async def execute(self) -> List[YouTubeVideoDataEntity]:
+        """Loads config from DB, fetches videos, and saves them. Returns the saved entities."""
+        config = await self.repository.get_config()
+
         # We use a single client to maintain an open connection pool
         # limits=httpx.Limits(max_connections=50) helps to manage concurrency
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
         async with httpx.AsyncClient(limits=limits) as client:
             # Phase 1: Channel handles resolution
             channel_ids = await self._resolve_channel_handles(client, config.channel_ids)
-            
+
             # Phase 2: Search candidates
             search_items = await self._fetch_search_candidates(client, config, channel_ids)
             if not search_items:
+                config.last_search_at = datetime.now(timezone.utc)
+                await self.repository.save_config(config)
                 return []
-            
+
             # Phase 3: Enrich details
             enriched_videos = await self._enrich_video_details_in_batch(client, search_items)
-            
+
             # Phase 4: Filter and fetch transcripts
             final_videos = await self._filter_and_fetch_transcripts(client, enriched_videos, config)
-            
+
             # Phase 5: Concurrent DB saving
             if final_videos:
                 save_tasks = [self.repository.save(video) for video in final_videos]
                 await asyncio.gather(*save_tasks)
-                
-            return final_videos
+
+        # Update last_search_at in config
+        config.last_search_at = datetime.now(timezone.utc)
+        await self.repository.save_config(config)
+
+        return final_videos
 
     async def _resolve_channel_handles(self, client: httpx.AsyncClient, channel_ids: List[str]) -> List[str]:
         if not channel_ids:
@@ -84,13 +93,13 @@ class YouTubeFetcherUseCase:
         resolved = await asyncio.gather(*(resolve(raw_id) for raw_id in channel_ids))
         return [id_ for id_ in resolved if id_ is not None]
 
-    async def _fetch_search_candidates(self, client: httpx.AsyncClient, config: YouTubeSearchSettings, channel_ids: List[str]) -> List[dict]:
+    async def _fetch_search_candidates(self, client: httpx.AsyncClient, config, channel_ids: List[str]) -> List[dict]:
         query = " | ".join(config.keywords)
         query = f"{query} -shorts -#shorts" if query else "-shorts -#shorts"
 
         search_base_url = "https://youtube.googleapis.com/youtube/v3/search"
         two_days_ago = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
-        
+
         base_params = {
             "part": "snippet",
             "type": "video",
@@ -179,7 +188,7 @@ class YouTubeFetcherUseCase:
 
         chunks = [valid_items[i:i + chunk_size] for i in range(0, len(valid_items), chunk_size)]
         results = await asyncio.gather(*(fetch_chunk(chunk) for chunk in chunks))
-        
+
         for res in results:
             enriched_videos.extend(res)
 
@@ -189,16 +198,15 @@ class YouTubeFetcherUseCase:
 
         return enriched_videos
 
-    async def _filter_and_fetch_transcripts(self, client: httpx.AsyncClient, videos_details: List[dict], config: YouTubeSearchSettings) -> List[YouTubeVideoDataEntity]:
+    async def _filter_and_fetch_transcripts(self, client: httpx.AsyncClient, videos_details: List[dict], config) -> List[YouTubeVideoDataEntity]:
         final_videos = []
         pushed_per_channel = {}
         total_pushed = 0
-        
+
         is_global_search = not config.channel_ids
         langs_to_try = config.languages if (config.languages and "any" not in config.languages) else ["es", "en"]
         foreign_chars_regex = re.compile(r'[\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF\u0400-\u04FF\u0600-\u06FF]')
 
-        # Parallel transcript fetching to maximize speed
         # First identify which videos pass the filters
         passed_videos = []
         for item in videos_details:
@@ -236,8 +244,6 @@ class YouTubeFetcherUseCase:
             snippet = item["snippet"]
             stats = item.get("statistics", {})
 
-            transcript = 'Transcript not available'
-            
             # youtube_transcript_api is synchronous by default, we wrap in to_thread
             def fetch_t():
                 try:
@@ -246,12 +252,12 @@ class YouTubeFetcherUseCase:
                     return formatter.format_transcript(transcript_list).replace('\n', ' ').strip()
                 except Exception:
                     return 'Transcript not available'
-            
+
             transcript = await asyncio.to_thread(fetch_t)
-            
+
             thumbnails = snippet.get("thumbnails", {})
             thumbnail_url = thumbnails.get("high", {}).get("url") or thumbnails.get("default", {}).get("url") or ""
-            
+
             return YouTubeVideoDataEntity(
                 id=video_id,
                 title=snippet.get("title", ""),
@@ -269,5 +275,5 @@ class YouTubeFetcherUseCase:
 
         if passed_videos:
             final_videos = await asyncio.gather(*(fetch_transcript_and_map(item) for item in passed_videos))
-            
+
         return list(final_videos)
