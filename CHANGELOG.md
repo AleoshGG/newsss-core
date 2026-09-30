@@ -5,6 +5,11 @@ All notable changes to the NEWSSS-CORE server will be documented in this file.
 ## [0.0.4] - 2026-09-30
 
 ### Added
+- **Security Middleware & Rate Limiting**: Added a custom `SecurityMiddleware` for the FastAPI application to protect endpoints ahead of testing phase deployment.
+  - Implements an in-memory sliding window rate limiter (100 requests per minute per IP) to prevent abuse.
+  - Secures GraphQL endpoints (`/graphql`) by requiring an `X-API-Key` or `Authorization` header.
+  - Secures MCP endpoints (`/mcp`) by requiring an `api_key` URL query parameter.
+- **CORS Support**: Integrated FastAPI's `CORSMiddleware` with configurable allowed origins via the `.env` file.
 - **Medallion Architecture (Silver Layer)**: Implemented a staging table `normalized_items` to store cleaned and translated items. This splits the marketing pipeline into two resilient phases:
   - Phase 1 (Clean & Translate): Translates items and gracefully handles LLM failures (e.g., saving successfully translated items before aborting).
   - Phase 2 (Generate Campaigns): Reads translated items, clusters them, and generates campaigns. This avoids losing LLM tokens if the pipeline fails downstream.
