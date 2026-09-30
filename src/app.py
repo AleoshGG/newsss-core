@@ -10,8 +10,21 @@ import src.features.github.presentation.mcp_tools
 import src.features.google_news.presentation.mcp_tools
 import src.features.marketing.presentation.mcp_tools
 
+from mcp.server.transport_security import TransportSecuritySettings
+
+# Lista de hosts permitidos (local + Railway si existe)
+allowed = ["127.0.0.1", "localhost"]
+if settings.RAILWAY_PUBLIC_DOMAIN:
+    allowed.append(settings.RAILWAY_PUBLIC_DOMAIN)
+
 # Create the MCP app with a root path for sub-mounting
-mcp_app = mcp.streamable_http_app(streamable_http_path="/")
+mcp_app = mcp.streamable_http_app(
+    streamable_http_path="/",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed
+    )
+)
 
 
 @asynccontextmanager
