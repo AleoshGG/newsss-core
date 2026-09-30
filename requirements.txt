@@ -11,7 +11,7 @@ python-dotenv>=1.0.1
 dependency-injector>=4.42.0
 
 # ORM y Migraciones de Base de Datos
-sqlalchemy>=2.0.35
+sqlalchemy[asyncio]>=2.0.35
 alembic>=1.13.0
 
 # Drivers de Base de Datos (PostgreSQL)
