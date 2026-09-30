@@ -2,6 +2,21 @@
 
 All notable changes to the NEWSSS-CORE server will be documented in this file.
 
+## [0.0.4] - 2026-09-30
+
+### Added
+- **Medallion Architecture (Silver Layer)**: Implemented a staging table `normalized_items` to store cleaned and translated items. This splits the marketing pipeline into two resilient phases:
+  - Phase 1 (Clean & Translate): Translates items and gracefully handles LLM failures (e.g., saving successfully translated items before aborting).
+  - Phase 2 (Generate Campaigns): Reads translated items, clusters them, and generates campaigns. This avoids losing LLM tokens if the pipeline fails downstream.
+- **Message Queue Flow for Sources**: Added an `is_processed` boolean column to all raw source tables (`youtube_videos`, `github_data`, `google_news_articles`). The pipeline now only consumes un-processed items and marks them as processed upon successful ingestion into the Silver Layer, preventing duplicate translations.
+- **Full Google News Article Extraction**: Integrated `googlenewsdecoder` to resolve base64 Google News redirect URLs (`CBMi...`) to the actual publisher URLs, enabling full HTML content scraping via BeautifulSoup (with RSS summaries as a fallback).
+- **Environment-driven Gemini Model**: Extracted the Gemini model name to a configurable environment variable (`GEMINI_MODEL`) in `.env` and `Settings`, defaulting to `gemini-3.8-flash` following Google's model deprecation.
+
+### Changed
+- **GitHub README Fetching**: Switched from `api.github.com` endpoints (which hit strict 60 req/hr limits and 403s) to direct RAW downloads from `raw.githubusercontent.com` with branch fallbacks (`main`/`master`).
+- **YouTube API Syntax**: Updated `youtube-transcript-api` calls to use the modern instance syntax (`YouTubeTranscriptApi().list(video_id)`) with a multi-language fallback strategy.
+- **Run Marketing Pipeline Orchestrator**: Refactored to operate over the new Silver Layer, efficiently grouping data from multiple scraper runs into a single semantic clustering batch.
+
 ## [0.0.3] - 2026-09-30
 
 ### Added
