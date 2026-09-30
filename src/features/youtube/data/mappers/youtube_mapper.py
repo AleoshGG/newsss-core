@@ -7,7 +7,8 @@ def to_entity(model: YouTubeVideoModel) -> YouTubeVideoDataEntity:
     return YouTubeVideoDataEntity(
         id=model.id, title=model.title, channel=model.channel,
         published_at=model.published_at, url=model.url,
-        metrics=metrics, thumbnail_url=model.thumbnail_url, transcript=model.transcript
+        metrics=metrics, thumbnail_url=model.thumbnail_url, transcript=model.transcript,
+        is_processed=model.is_processed
     )
 
 def to_model(entity: YouTubeVideoDataEntity) -> YouTubeVideoModel:
@@ -15,5 +16,6 @@ def to_model(entity: YouTubeVideoDataEntity) -> YouTubeVideoModel:
         id=entity.id, title=entity.title, channel=entity.channel,
         published_at=entity.published_at, url=entity.url,
         thumbnail_url=entity.thumbnail_url, transcript=entity.transcript,
-        views=entity.metrics.views, likes=entity.metrics.likes, comments=entity.metrics.comments
+        views=entity.metrics.views, likes=entity.metrics.likes, comments=entity.metrics.comments,
+        is_processed=entity.is_processed
     )

@@ -24,6 +24,14 @@ class GitHubRepository(ABC):
         pass
 
     @abstractmethod
+    async def find_unprocessed(self, limit: int = 50) -> list[GitHubDataEntity]:
+        pass
+
+    @abstractmethod
+    async def mark_as_processed(self, item_ids: list[int]) -> None:
+        pass
+
+    @abstractmethod
     async def delete_all_before_date(self, date: datetime) -> int:
         pass
 

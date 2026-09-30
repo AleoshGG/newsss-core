@@ -12,3 +12,4 @@ class GoogleNewsArticleDataEntity:
     fetched_at: datetime | None = None
     image_url: str | None = None
     content: str | None = None
+    is_processed: bool = False

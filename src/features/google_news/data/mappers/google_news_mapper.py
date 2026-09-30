@@ -6,7 +6,8 @@ def to_entity(model: GoogleNewsArticleModel) -> GoogleNewsArticleDataEntity:
     return GoogleNewsArticleDataEntity(
         id=model.id, title=model.title, link=model.link, pub_date=model.pub_date,
         source_name=model.source_name, source_url=model.source_url,
-        fetched_at=model.fetched_at, image_url=model.image_url, content=model.content
+        fetched_at=model.fetched_at, image_url=model.image_url, content=model.content,
+        is_processed=model.is_processed
     )
 
 def to_model(entity: GoogleNewsArticleDataEntity) -> GoogleNewsArticleModel:
@@ -14,5 +15,6 @@ def to_model(entity: GoogleNewsArticleDataEntity) -> GoogleNewsArticleModel:
     return GoogleNewsArticleModel(
         id=entity.id, title=entity.title, link=entity.link, pub_date=pub_date_str,
         source_name=entity.source_name, source_url=entity.source_url,
-        fetched_at=entity.fetched_at, image_url=entity.image_url, content=entity.content
+        fetched_at=entity.fetched_at, image_url=entity.image_url, content=entity.content,
+        is_processed=entity.is_processed
     )

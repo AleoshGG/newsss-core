@@ -51,7 +51,7 @@ async def get_context():
         if settings.GEMINI_API_KEY:
             try:
                 from src.core.llm.gemini_client import GeminiLLMClient
-                llm = GeminiLLMClient(api_key=settings.GEMINI_API_KEY)
+                llm = GeminiLLMClient(api_key=settings.GEMINI_API_KEY, model_name=settings.GEMINI_MODEL)
             except ImportError:
                 pass  # google-generativeai not yet installed; pipeline will fail with a clear message
 

@@ -8,7 +8,7 @@ def to_entity(model: GitHubDataModel) -> GitHubDataEntity:
         language=model.language, updated_at=model.updated_at, topics=model.topics,
         readme=model.readme, owner_avatar_url=model.owner_avatar_url,
         forks_count=model.forks_count, open_issues_count=model.open_issues_count,
-        license=model.license
+        license=model.license, is_processed=model.is_processed
     )
 
 def to_model(entity: GitHubDataEntity) -> GitHubDataModel:
@@ -18,5 +18,5 @@ def to_model(entity: GitHubDataEntity) -> GitHubDataModel:
         language=entity.language, updated_at=entity.updated_at, topics=entity.topics,
         readme=entity.readme, owner_avatar_url=entity.owner_avatar_url,
         forks_count=entity.forks_count, open_issues_count=entity.open_issues_count,
-        license=entity.license
+        license=entity.license, is_processed=entity.is_processed
     )

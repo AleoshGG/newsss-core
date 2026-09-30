@@ -213,7 +213,7 @@ class CleanAndNormalizeUseCase:
     # ------------------------------------------------------------------
 
     async def _process_youtube(self) -> list[NormalizedItem]:
-        raw_videos = await self._youtube_repo.find_recent(limit=self._limit)
+        raw_videos = await self._youtube_repo.find_unprocessed(limit=self._limit)
         self._stats.total_fetched += len(raw_videos)
         self._stats.by_source["youtube"] = 0
 
@@ -224,7 +224,11 @@ class CleanAndNormalizeUseCase:
                 self._stats.discarded_empty_body += 1
                 continue
 
-            body, lang = await self._maybe_translate(body)
+            try:
+                body, lang = await self._maybe_translate(body)
+            except Exception as e:
+                print(f"Translation failed for YouTube video {video.id}. Returning {len(items)} items processed so far. Error: {e}")
+                break
 
             engagement = (
                 (video.metrics.likes * 3 + video.metrics.views) / 1000
@@ -236,6 +240,7 @@ class CleanAndNormalizeUseCase:
 
             items.append(NormalizedItem(
                 id=f"yt_{video.id}",
+                raw_id=str(video.id),
                 source="youtube",
                 title=video.title,
                 body=body,
@@ -254,7 +259,7 @@ class CleanAndNormalizeUseCase:
     # ------------------------------------------------------------------
 
     async def _process_github(self) -> list[NormalizedItem]:
-        raw_repos = await self._github_repo.find_recent(limit=self._limit)
+        raw_repos = await self._github_repo.find_unprocessed(limit=self._limit)
         self._stats.total_fetched += len(raw_repos)
         self._stats.by_source["github"] = 0
 
@@ -265,7 +270,11 @@ class CleanAndNormalizeUseCase:
                 self._stats.discarded_empty_body += 1
                 continue
 
-            body, lang = await self._maybe_translate(body)
+            try:
+                body, lang = await self._maybe_translate(body)
+            except Exception as e:
+                print(f"Translation failed for GitHub repo {repo.id}. Returning {len(items)} items processed so far. Error: {e}")
+                break
 
             engagement = (repo.stargazers_count * 2) + (repo.forks_count or 0)
 
@@ -279,6 +288,7 @@ class CleanAndNormalizeUseCase:
 
             items.append(NormalizedItem(
                 id=f"gh_{repo.id}",
+                raw_id=str(repo.id),
                 source="github",
                 title=repo.name,
                 body=body,
@@ -297,7 +307,7 @@ class CleanAndNormalizeUseCase:
     # ------------------------------------------------------------------
 
     async def _process_google_news(self) -> list[NormalizedItem]:
-        raw_articles = await self._google_news_repo.find_recent(limit=self._limit)
+        raw_articles = await self._google_news_repo.find_unprocessed(limit=self._limit)
         self._stats.total_fetched += len(raw_articles)
         self._stats.by_source["google_news"] = 0
 
@@ -308,7 +318,11 @@ class CleanAndNormalizeUseCase:
                 self._stats.discarded_empty_body += 1
                 continue
 
-            body, lang = await self._maybe_translate(body)
+            try:
+                body, lang = await self._maybe_translate(body)
+            except Exception as e:
+                print(f"Translation failed for Google News article {article.id}. Returning {len(items)} items processed so far. Error: {e}")
+                break
 
             # Parse pub_date — it can be a string or datetime
             try:
@@ -325,6 +339,7 @@ class CleanAndNormalizeUseCase:
 
             items.append(NormalizedItem(
                 id=f"gn_{article.id}",
+                raw_id=str(article.id),
                 source="google_news",
                 title=article.title,
                 body=body,
@@ -354,5 +369,10 @@ class CleanAndNormalizeUseCase:
                 self._stats.translated += 1
                 return translated, lang
             except Exception as e:
-                print(f"Translation error (lang={lang}): {e}")
+                error_msg = str(e)
+                print(f"Translation error (lang={lang}): {error_msg}")
+                if "401" in error_msg or "UNAUTHENTICATED" in error_msg:
+                    raise ValueError(f"Invalid Gemini API Key: {error_msg}")
+                # We can also choose to raise on any other translation error to abort the pipeline
+                raise e
         return text, lang

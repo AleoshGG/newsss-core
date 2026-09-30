@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...domain.entities.content_cluster_entity import ContentCluster
 from ...domain.entities.marketing_campaign_entity import MarketingCampaign
+from ...domain.entities.normalized_item_entity import NormalizedItem
 from ...domain.repositories.marketing_repository import MarketingRepository
 from ..models.content_cluster_model import ContentClusterModel
 from ..models.marketing_campaign_model import MarketingCampaignModel
@@ -156,3 +157,66 @@ class MarketingRepositoryImpl(MarketingRepository):
             status=model.status,
             created_at=model.created_at,
         )
+
+    # ------------------------------------------------------------------
+    # Normalized Items (Silver Layer)
+    # ------------------------------------------------------------------
+
+    async def save_many_normalized_items(self, items: list[NormalizedItem]) -> list[NormalizedItem]:
+        from ..models.normalized_item_model import NormalizedItemModel
+        models = [
+            NormalizedItemModel(
+                id=item.id,
+                raw_id=item.raw_id,
+                source=item.source,
+                title=item.title,
+                body=item.body,
+                url=item.url,
+                tags=item.tags,
+                engagement_score=item.engagement_score,
+                published_at=item.published_at,
+                original_language=item.original_language,
+            )
+            for item in items
+        ]
+        for model in models:
+            await self.session.merge(model)
+        await self.session.commit()
+        return items
+
+    async def find_unprocessed_normalized_items(self, limit: int = 50) -> list[NormalizedItem]:
+        from ..models.normalized_item_model import NormalizedItemModel
+        stmt = (
+            select(NormalizedItemModel)
+            .where(NormalizedItemModel.is_used_for_marketing == False)
+            .order_by(NormalizedItemModel.published_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+        return [
+            NormalizedItem(
+                id=m.id,
+                raw_id=m.raw_id,
+                source=m.source,  # type: ignore
+                title=m.title,
+                body=m.body,
+                url=m.url,
+                tags=m.tags or [],
+                engagement_score=m.engagement_score,
+                published_at=m.published_at,
+                original_language=m.original_language,
+            )
+            for m in models
+        ]
+
+    async def mark_normalized_as_processed(self, item_ids: list[str]) -> None:
+        from sqlalchemy import update
+        from ..models.normalized_item_model import NormalizedItemModel
+        stmt = (
+            update(NormalizedItemModel)
+            .where(NormalizedItemModel.id.in_(item_ids))
+            .values(is_used_for_marketing=True)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()

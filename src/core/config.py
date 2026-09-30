@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     YOUTUBE_API_KEY: str
     GITHUB_TOKEN: str | None = None  # Optional — raises GitHub rate limit from 60 to 5000 req/h
     GEMINI_API_KEY: str | None = None  # Required for the marketing ML pipeline (Stage 4 content generation)
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

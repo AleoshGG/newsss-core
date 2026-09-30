@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ARRAY
+from sqlalchemy import Column, Integer, String, ARRAY, Boolean
 from src.core.db.base_class import Base
 
 class GitHubDataModel(Base):
@@ -18,3 +18,4 @@ class GitHubDataModel(Base):
     forks_count = Column(Integer, nullable=True)
     open_issues_count = Column(Integer, nullable=True)
     license = Column(String, nullable=True)
+    is_processed = Column(Boolean, default=False, server_default='false', nullable=False)

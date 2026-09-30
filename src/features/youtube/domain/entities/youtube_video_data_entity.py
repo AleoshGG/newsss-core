@@ -13,3 +13,4 @@ class YouTubeVideoDataEntity:
     metrics: YouTubeVideoMetrics
     thumbnail_url: str
     transcript: str
+    is_processed: bool = False

@@ -11,6 +11,7 @@ class NormalizedItem:
     """
 
     id: str
+    raw_id: str                   # Original DB id
     source: Literal["youtube", "github", "google_news"]
     title: str
     body: str                     # Clean plain text, always in English

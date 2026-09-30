@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, Boolean
 from src.core.db.base_class import Base
 
 class YouTubeVideoModel(Base):
@@ -11,7 +11,7 @@ class YouTubeVideoModel(Base):
     url = Column(String, nullable=False)
     thumbnail_url = Column(String, nullable=False)
     transcript = Column(String, nullable=False)
-    
+    is_processed = Column(Boolean, default=False, server_default='false', nullable=False)
     # Metrics
     views = Column(Integer, default=0)
     likes = Column(Integer, default=0)

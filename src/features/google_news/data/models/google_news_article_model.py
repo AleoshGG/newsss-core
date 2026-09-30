@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from src.core.db.base_class import Base
 
 class GoogleNewsArticleModel(Base):
@@ -13,3 +13,4 @@ class GoogleNewsArticleModel(Base):
     fetched_at = Column(DateTime(timezone=True), nullable=True)
     image_url = Column(String, nullable=True)
     content = Column(String, nullable=True)
+    is_processed = Column(Boolean, default=False, server_default='false', nullable=False)

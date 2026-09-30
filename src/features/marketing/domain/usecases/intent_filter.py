@@ -136,6 +136,7 @@ class IntentFilterUseCase:
                 continue
             scored.append(ScoredItem(
                 id=item.id,
+                raw_id=item.raw_id,
                 source=item.source,
                 title=item.title,
                 body=item.body,

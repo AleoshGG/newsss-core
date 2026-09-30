@@ -46,6 +46,28 @@ class GitHubRepositoryImpl(GitHubRepository):
         models = result.scalars().all()
         return [to_entity(m) for m in models]
 
+    async def find_unprocessed(self, limit: int = 50) -> list[GitHubDataEntity]:
+        stmt = (
+            select(GitHubDataModel)
+            .where(GitHubDataModel.is_processed == False)
+            .order_by(GitHubDataModel.updated_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+        return [to_entity(m) for m in models]
+
+    async def mark_as_processed(self, item_ids: list[int]) -> None:
+        from sqlalchemy import update
+        stmt = (
+            update(GitHubDataModel)
+            .where(GitHubDataModel.id.in_(item_ids))
+            .values(is_processed=True)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
+
     async def delete_all_before_date(self, date: datetime) -> int:
         stmt = delete(GitHubDataModel).where(GitHubDataModel.updated_at < date.isoformat())
         result = await self.session.execute(stmt)

@@ -46,6 +46,28 @@ class GoogleNewsRepositoryImpl(GoogleNewsRepository):
         models = result.scalars().all()
         return [to_entity(m) for m in models]
 
+    async def find_unprocessed(self, limit: int = 50) -> list[GoogleNewsArticleDataEntity]:
+        stmt = (
+            select(GoogleNewsArticleModel)
+            .where(GoogleNewsArticleModel.is_processed == False)
+            .order_by(GoogleNewsArticleModel.fetched_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+        return [to_entity(m) for m in models]
+
+    async def mark_as_processed(self, item_ids: list[str]) -> None:
+        from sqlalchemy import update
+        stmt = (
+            update(GoogleNewsArticleModel)
+            .where(GoogleNewsArticleModel.id.in_(item_ids))
+            .values(is_processed=True)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
+
     async def delete_all_before_date(self, date: datetime) -> int:
         stmt = delete(GoogleNewsArticleModel).where(GoogleNewsArticleModel.fetched_at < date)
         result = await self.session.execute(stmt)

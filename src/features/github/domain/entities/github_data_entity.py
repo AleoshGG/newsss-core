@@ -16,3 +16,4 @@ class GitHubDataEntity:
     forks_count: int | None = None
     open_issues_count: int | None = None
     license: str | None = None
+    is_processed: bool = False

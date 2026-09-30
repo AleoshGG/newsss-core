@@ -49,7 +49,7 @@ async def run_marketing_pipeline(
         async_session() as gn_session,
         async_session() as mk_session,
     ):
-        llm = GeminiLLMClient(api_key=settings.GEMINI_API_KEY)
+        llm = GeminiLLMClient(api_key=settings.GEMINI_API_KEY, model_name=settings.GEMINI_MODEL)
         use_case = RunMarketingPipelineUseCase(
             youtube_repo=YouTubeRepositoryImpl(session=yt_session),
             github_repo=GitHubRepositoryImpl(session=gh_session),
