@@ -21,11 +21,29 @@ async def lifespan(app: FastAPI):
         yield
 
 
+from fastapi.middleware.cors import CORSMiddleware
+from src.core.security import SecurityMiddleware
+from src.core.config import settings
+
 app = FastAPI(
     title="Newsss Core",
     description="GraphQL and MCP Service for YouTube, GitHub, and Google News integration.",
     lifespan=lifespan
 )
+
+# 1. CORS Middleware
+# Parse CORS_ORIGINS from settings
+origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 2. Security Middleware (Rate limit + Auth)
+app.add_middleware(SecurityMiddleware)
 
 # Mount the unified GraphQL router (YouTube + GitHub + Google News)
 app.include_router(graphql_app, prefix="/graphql")
