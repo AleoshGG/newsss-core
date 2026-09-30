@@ -21,6 +21,14 @@ class GitHubRepositoryImpl(GitHubRepository):
         await self.session.commit()
         return to_entity(model)
 
+    async def save_many(self, entities: list[GitHubDataEntity]) -> list[GitHubDataEntity]:
+        models = [to_model(e) for e in entities]
+        merged_models = []
+        for model in models:
+            merged_models.append(await self.session.merge(model))
+        await self.session.commit()
+        return [to_entity(m) for m in merged_models]
+
     async def find_all(self) -> list[GitHubDataEntity]:
         stmt = select(GitHubDataModel)
         result = await self.session.execute(stmt)

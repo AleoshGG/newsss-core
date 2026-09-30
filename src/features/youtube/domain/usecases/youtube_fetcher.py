@@ -60,10 +60,9 @@ class YouTubeFetcherUseCase:
             # Phase 4: Filter and fetch transcripts
             final_videos = await self._filter_and_fetch_transcripts(client, enriched_videos, config)
 
-            # Phase 5: Concurrent DB saving
+            # Phase 5: Bulk DB saving
             if final_videos:
-                save_tasks = [self.repository.save(video) for video in final_videos]
-                await asyncio.gather(*save_tasks)
+                await self.repository.save_many(final_videos)
 
         # Update last_search_at in config
         config.last_search_at = datetime.now(timezone.utc)

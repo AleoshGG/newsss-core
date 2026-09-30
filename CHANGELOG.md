@@ -2,6 +2,71 @@
 
 All notable changes to the NEWSSS-CORE server will be documented in this file.
 
+## [0.0.3] - 2026-09-30
+
+### Added
+
+- **Marketing Feature — ML Pipeline for Digital Marketing Campaigns**:
+  A new `src/features/marketing/` feature that orchestrates a 5-stage ML + LLM pipeline over the ingested data (YouTube, GitHub, Google News) to generate B2B marketing campaigns targeting consultancies and enterprise decision-makers.
+
+  **Stage 0+1 — Data Cleaning & Normalization** (`CleanAndNormalizeUseCase`, `DataCleaner`):
+  - Source-aware cleaning handles the real-world quality issues of each data source:
+    - **YouTube**: Detects and discards absent transcripts (literal `"Transcript not available"` strings and variants); strips auto-caption noise tags (`[Music]`, `[Applause]`).
+    - **GitHub**: Strips markdown syntax from READMEs — fenced code blocks, badge images, tables, headers, HTML tags, and list markers — leaving clean prose. Falls back to the repo `description` if the cleaned README is too short.
+    - **Google News**: Detects captcha/paywall fingerprints in scraped content (`"Please enable JavaScript"`, `"Subscribe to continue"`, etc.) and discards poisoned articles. Falls back to the article title if content is absent but the title is long enough.
+  - Language detection via `langdetect` (offline, no API cost); non-English items are translated to English using the configured LLM before clustering.
+  - Returns a `CleaningStats` struct exposing the number of items fetched, discarded, translated, and passed per source — surfaced in the GraphQL and MCP responses.
+
+  **Stage 2 — B2B Intent Filtering** (`IntentFilterUseCase`):
+  - Scores each `NormalizedItem` with a weighted formula: keyword match score × 0.50 + normalized engagement × 0.30 + recency decay × 0.20.
+  - Keyword taxonomy calibrated for tech consultancies (high-intent: `enterprise`, `saas`, `ai agent`, `llm`, `launch`, `case study`, `digital transformation`; low-intent: `bugfix`, `refactor`, `version bump`).
+  - Items below a configurable `min_intent_score` threshold (default `0.25`) are discarded.
+
+  **Stage 3 — Semantic Clustering** (`ClusterContentUseCase`):
+  - Generates dense semantic embeddings locally using `sentence-transformers` (`all-MiniLM-L6-v2`, ~90 MB, cached after first run — no GPU required).
+  - Groups items into K topic clusters using K-Means (`scikit-learn`). Auto-reduces cluster count if fewer items than requested clusters are available.
+  - Extracts representative TF-IDF keywords per cluster for automatic topic labeling.
+  - All CPU-bound computation offloaded to a thread pool via `asyncio.to_thread` to avoid blocking FastAPI's event loop.
+
+  **Stage 4 — LLM Content Generation** (`GenerateMarketingContentUseCase`):
+  - Generates structured marketing campaigns per cluster using the configured LLM.
+  - Three campaign formats with dedicated B2B prompt templates: `linkedin_post`, `twitter_thread`, `email_newsletter`.
+  - Prompts are calibrated for a consulting/enterprise audience (professional tone, no buzzwords, actionable insights, clear CTA).
+  - Robust JSON parsing with graceful fallback if the LLM returns non-JSON output.
+  - Cluster generation calls are concurrent via `asyncio.gather`; errors in individual clusters are isolated and do not abort the pipeline.
+
+  **Orchestrator** (`RunMarketingPipelineUseCase`):
+  - Chains all five stages and persists results (`content_clusters`, `marketing_campaigns`) to PostgreSQL.
+  - Returns a `PipelineResult` with campaigns, cluster count, item counts at each stage, and `CleaningStats`.
+
+  **New DB tables** (via Alembic autogenerate migration `6ae5d0b4ff03`):
+  - `content_clusters` — semantic topic clusters from each pipeline run.
+  - `marketing_campaigns` — LLM-generated campaigns with `status` (`draft` / `approved` / `published`).
+
+  **GraphQL** (`MarketingQuery`, `MarketingMutation` merged into unified schema):
+  - `runMarketingPipeline(limitPerSource, nClusters, minIntentScore, campaignType, translateNonEnglish)` mutation.
+  - `getMarketingCampaigns(limit, status)` and `getContentClusters(limit)` queries.
+  - `PipelineResultType` exposes campaigns + `CleaningStatsType` for observability.
+
+  **MCP Tools**:
+  - `run_marketing_pipeline(limit_per_source, n_clusters, campaign_type, translate_non_english)` — triggers the full pipeline.
+  - `get_marketing_campaigns(limit, status)` — reads stored campaigns with optional status filter.
+
+- **Abstract LLM Interface** (`src/core/llm/`):
+  - `LLMClient` — abstract base class enabling any LLM provider to be swapped in without modifying business logic.
+  - `GeminiLLMClient` — default implementation using the `google-genai` SDK (`gemini-2.0-flash`).
+  - `translate_to_english()` method used by the cleaning stage for multilingual content normalization.
+
+- **New Settings**: `GEMINI_API_KEY: str | None` added to `Settings` — required to run the marketing pipeline.
+
+- **New Dependencies**: `sentence-transformers`, `scikit-learn`, `numpy`, `langdetect`, `google-genai`.
+
+### Changed
+
+- **Unified GraphQL Schema** extended: `MarketingQuery` and `MarketingMutation` merged into `Query` and `Mutation` root types via multiple inheritance. `marketing_repository` and `llm` injected into the shared GraphQL context (with a lazy import guard so the server remains startable without `GEMINI_API_KEY`).
+- **`src/app.py`**: Imports `src.features.marketing.presentation.mcp_tools` to register the two new MCP tools at startup.
+- **`src/core/db/base.py`**: Imports `ContentClusterModel` and `MarketingCampaignModel` so Alembic's autogenerate detects the new tables.
+
 ## [0.0.2] - 2026-09-29
 
 ### Added

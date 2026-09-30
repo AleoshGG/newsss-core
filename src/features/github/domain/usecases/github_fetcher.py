@@ -43,9 +43,9 @@ class GitHubFetcherUseCase:
             # Phase 3: Fetch READMEs concurrently and map to entities
             entities = await self._fetch_readmes_and_map(client, filtered)
 
-            # Phase 4: UPSERT all concurrently
+            # Phase 4: Bulk DB saving
             if entities:
-                await asyncio.gather(*(self.repository.save(e) for e in entities))
+                await self.repository.save_many(entities)
 
         # Update last_search_at in config
         config.last_search_at = datetime.now(timezone.utc)

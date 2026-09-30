@@ -21,6 +21,14 @@ class GoogleNewsRepositoryImpl(GoogleNewsRepository):
         await self.session.commit()
         return to_entity(model)
 
+    async def save_many(self, articles: list[GoogleNewsArticleDataEntity]) -> list[GoogleNewsArticleDataEntity]:
+        models = [to_model(a) for a in articles]
+        merged_models = []
+        for model in models:
+            merged_models.append(await self.session.merge(model))
+        await self.session.commit()
+        return [to_entity(m) for m in merged_models]
+
     async def find_all(self) -> list[GoogleNewsArticleDataEntity]:
         stmt = select(GoogleNewsArticleModel)
         result = await self.session.execute(stmt)

@@ -12,6 +12,10 @@ class YouTubeRepository(ABC):
         pass
 
     @abstractmethod
+    async def save_many(self, videos: list[YouTubeVideoDataEntity]) -> list[YouTubeVideoDataEntity]:
+        pass
+
+    @abstractmethod
     async def find_all(self) -> list[YouTubeVideoDataEntity]:
         pass
 

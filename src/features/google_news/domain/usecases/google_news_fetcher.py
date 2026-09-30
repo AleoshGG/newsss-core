@@ -35,9 +35,9 @@ class GoogleNewsFetcherUseCase:
             # Phase 2: Scrape og:image + article content concurrently
             enriched = await self._scrape_articles(client, entries, config.max_results)
 
-            # Phase 3: UPSERT all
+            # Phase 3: Bulk DB saving
             if enriched:
-                await asyncio.gather(*(self.repository.save(a) for a in enriched))
+                await self.repository.save_many(enriched)
 
         # Update last_search_at in config
         config.last_search_at = datetime.now(timezone.utc)

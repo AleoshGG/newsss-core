@@ -12,6 +12,10 @@ class GitHubRepository(ABC):
         pass
 
     @abstractmethod
+    async def save_many(self, entities: list[GitHubDataEntity]) -> list[GitHubDataEntity]:
+        pass
+
+    @abstractmethod
     async def find_all(self) -> list[GitHubDataEntity]:
         pass
 

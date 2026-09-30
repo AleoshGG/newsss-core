@@ -8,6 +8,7 @@ from src.mcp_server import mcp
 import src.features.youtube.presentation.mcp_tools
 import src.features.github.presentation.mcp_tools
 import src.features.google_news.presentation.mcp_tools
+import src.features.marketing.presentation.mcp_tools
 
 # Create the MCP app with a root path for sub-mounting
 mcp_app = mcp.streamable_http_app(streamable_http_path="/")

@@ -12,6 +12,10 @@ class GoogleNewsRepository(ABC):
         pass
 
     @abstractmethod
+    async def save_many(self, articles: list[GoogleNewsArticleDataEntity]) -> list[GoogleNewsArticleDataEntity]:
+        pass
+
+    @abstractmethod
     async def find_all(self) -> list[GoogleNewsArticleDataEntity]:
         pass
 

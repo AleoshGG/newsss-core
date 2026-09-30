@@ -21,6 +21,14 @@ class YouTubeRepositoryImpl(YouTubeRepository):
         await self.session.commit()
         return to_entity(model)
 
+    async def save_many(self, videos: list[YouTubeVideoDataEntity]) -> list[YouTubeVideoDataEntity]:
+        models = [to_model(v) for v in videos]
+        merged_models = []
+        for model in models:
+            merged_models.append(await self.session.merge(model))
+        await self.session.commit()
+        return [to_entity(m) for m in merged_models]
+
     async def find_all(self) -> list[YouTubeVideoDataEntity]:
         stmt = select(YouTubeVideoModel)
         result = await self.session.execute(stmt)

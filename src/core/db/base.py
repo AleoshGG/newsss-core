@@ -5,3 +5,5 @@ from src.features.github.data.models.github_data_model import GitHubDataModel
 from src.features.github.data.models.github_search_config_model import GitHubSearchConfigModel
 from src.features.google_news.data.models.google_news_article_model import GoogleNewsArticleModel
 from src.features.google_news.data.models.google_news_config_model import GoogleNewsConfigModel
+from src.features.marketing.data.models.content_cluster_model import ContentClusterModel
+from src.features.marketing.data.models.marketing_campaign_model import MarketingCampaignModel
