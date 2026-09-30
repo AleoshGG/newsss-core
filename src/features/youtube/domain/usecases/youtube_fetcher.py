@@ -246,11 +246,29 @@ class YouTubeFetcherUseCase:
             # youtube_transcript_api is synchronous by default, we wrap in to_thread
             def fetch_t():
                 try:
-                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=langs_to_try)
-                    formatter = TextFormatter()
-                    return formatter.format_transcript(transcript_list).replace('\n', ' ').strip()
+                    t_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                    found = None
+                    
+                    # Try preferred languages first
+                    for lang in langs_to_try:
+                        try:
+                            found = t_list.find_transcript([lang])
+                            break
+                        except Exception:
+                            pass
+                    
+                    # Fallback: get ANY available transcript (LLM will translate later)
+                    if not found:
+                        for t in t_list:
+                            found = t
+                            break
+                            
+                    if found:
+                        formatter = TextFormatter()
+                        return formatter.format_transcript(found.fetch()).replace('\n', ' ').strip()
                 except Exception:
-                    return 'Transcript not available'
+                    pass
+                return 'Transcript not available'
 
             transcript = await asyncio.to_thread(fetch_t)
 

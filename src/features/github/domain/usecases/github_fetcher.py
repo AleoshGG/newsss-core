@@ -117,13 +117,18 @@ class GitHubFetcherUseCase:
         async def fetch_one(repo: dict) -> GitHubDataEntity:
             readme = ""
             try:
-                readme_url = f"https://api.github.com/repos/{repo['full_name']}/readme"
-                r = await client.get(
-                    readme_url,
-                    headers={"Accept": "application/vnd.github.v3.raw"}
-                )
+                # Use raw.githubusercontent.com to avoid API rate limit (403 Forbidden)
+                branch = repo.get("default_branch") or "main"
+                raw_url = f"https://raw.githubusercontent.com/{repo['full_name']}/{branch}/README.md"
+                r = await client.get(raw_url, follow_redirects=True)
                 if r.status_code == 200:
                     readme = r.text[:10000]  # Truncate to avoid huge blobs
+                elif r.status_code == 404 and branch == "main":
+                    # Fallback to master if main didn't work
+                    raw_url = f"https://raw.githubusercontent.com/{repo['full_name']}/master/README.md"
+                    r = await client.get(raw_url, follow_redirects=True)
+                    if r.status_code == 200:
+                        readme = r.text[:10000]
             except Exception as e:
                 print(f"README fetch error for {repo.get('full_name')}: {e}")
 

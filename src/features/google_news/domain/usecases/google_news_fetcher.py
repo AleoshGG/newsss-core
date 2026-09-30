@@ -102,14 +102,29 @@ class GoogleNewsFetcherUseCase:
     async def _scrape_articles(self, client: httpx.AsyncClient, entries: List, max_results: int) -> List[GoogleNewsArticleDataEntity]:
         """Scrape og:image and readable article text for each RSS entry."""
         from bs4 import BeautifulSoup
+        try:
+            from googlenewsdecoder import gnews_decoder_async
+        except ImportError:
+            gnews_decoder_async = None
 
         async def scrape_one(entry) -> GoogleNewsArticleDataEntity:
             link = getattr(entry, "link", "")
             image_url: str | None = None
             content: str | None = None
 
+            real_url = link
+            # 1. Decode Google News encrypted URL
+            if gnews_decoder_async and "news.google.com" in link:
+                try:
+                    decoded = await gnews_decoder_async(link)
+                    if decoded and decoded.get("decoded_url"):
+                        real_url = decoded["decoded_url"]
+                except Exception as e:
+                    print(f"URL decode error for {link}: {e}")
+
+            # 2. Scrape real URL
             try:
-                r = await client.get(link, timeout=10.0)
+                r = await client.get(real_url, timeout=10.0, follow_redirects=True)
                 if r.status_code == 200:
                     soup = BeautifulSoup(r.text, "lxml")
 
@@ -122,11 +137,19 @@ class GoogleNewsFetcherUseCase:
                     for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
                         tag.decompose()
 
-                    article_tag = soup.find("article") or soup.find("main") or soup.body
+                    article_tag = soup.find("article") or soup.find("main")
                     if article_tag:
                         content = article_tag.get_text(separator=" ", strip=True)[:5000]
-            except Exception as e:
-                print(f"Scraping error for {link}: {e}")
+            except Exception:
+                pass
+
+            # Fallback to RSS summary if content is missing (e.g. encrypted Google links)
+            if not content:
+                summary = getattr(entry, "summary", "") or getattr(entry, "description", "")
+                if summary:
+                    content = BeautifulSoup(summary, "lxml").get_text(separator=" ", strip=True)
+            if not content:
+                content = getattr(entry, "title", "")
 
             # Extract source info from feedparser entry
             source = getattr(entry, "source", None)
