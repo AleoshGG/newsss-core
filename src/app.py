@@ -9,8 +9,8 @@ import src.features.youtube.presentation.mcp_tools
 import src.features.github.presentation.mcp_tools
 import src.features.google_news.presentation.mcp_tools
 import src.features.marketing.presentation.mcp_tools
-
 from mcp.server.transport_security import TransportSecuritySettings
+from src.core.config import settings
 
 # Lista de hosts permitidos (local + Railway si existe)
 allowed = ["127.0.0.1", "localhost"]
@@ -36,7 +36,6 @@ async def lifespan(app: FastAPI):
 
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.security import SecurityMiddleware
-from src.core.config import settings
 
 app = FastAPI(
     title="Newsss Core",
