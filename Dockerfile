@@ -44,4 +44,5 @@ COPY . .
 EXPOSE 8000
 
 # Comando por defecto para iniciar el servidor
-CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Usamos formato shell para que inyecte la variable PORT dinámica de Railway
+CMD uvicorn src.app:app --host 0.0.0.0 --port ${PORT:-8000}
