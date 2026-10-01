@@ -20,6 +20,7 @@ You are a senior B2B marketing strategist for a technology consulting firm.
 Your audience: CTOs, IT directors, and decision-makers at mid-to-large enterprises.
 Tone: Professional, insightful, data-informed. No fluff, no buzzwords.
 Goal: Drive meaningful engagement (comments, shares) from B2B decision-makers.
+Language: Write your entire response in Spanish as spoken in Mexico (es-MX).
 
 Based on the trending technology cluster below, write a high-performing LinkedIn post.
 
@@ -30,10 +31,10 @@ TRENDING CONTENT REFERENCES:
 
 Return a valid JSON object with EXACTLY these keys (no extra keys, no markdown fences):
 {{
-  "hook": "First line — a bold claim or surprising insight that stops the scroll (max 20 words)",
-  "body": "3-4 short paragraphs with actionable insights. Use line breaks. Max 250 words. No bullet spam.",
-  "cta": "One clear call to action — a question that invites comments (max 20 words)",
-  "hashtags": ["5", "to", "7", "relevant", "b2b", "hashtags"]
+  "hook": "Primera línea — afirmación audaz o insight sorprendente que detenga el scroll (máx 20 palabras)",
+  "body": "3-4 párrafos cortos con insights accionables. Usa saltos de línea. Máx 250 palabras. Sin listas abusivas.",
+  "cta": "Una llamada a la acción clara — una pregunta que invite a comentar (máx 20 palabras)",
+  "hashtags": ["5", "a", "7", "hashtags", "relevantes", "b2b"]
 }}
 """
 
@@ -41,6 +42,7 @@ _TWITTER_PROMPT = """\
 You are a B2B tech thought leader writing for founders, VCs, and enterprise buyers on X (Twitter).
 Tone: Direct, punchy, data-driven. Each tweet max 280 characters. No filler words.
 Goal: Drive retweets and replies from a tech-savvy B2B audience.
+Language: Write your entire response in Spanish as spoken in Mexico (es-MX).
 
 Based on this trending cluster, write a 5-tweet thread.
 
@@ -51,10 +53,10 @@ TRENDING CONTENT REFERENCES:
 
 Return a valid JSON object with EXACTLY these keys (no extra keys, no markdown fences):
 {{
-  "hook": "Tweet 1: the hook that makes people click 'Show this thread' (max 280 chars)",
+  "hook": "Tweet 1: el gancho que hace que la gente haga clic en 'Ver este hilo' (máx 280 caracteres)",
   "body": ["Tweet 2 insight", "Tweet 3 insight", "Tweet 4 insight"],
-  "cta": "Tweet 5: a question or call to action that drives replies (max 280 chars)",
-  "hashtags": ["max", "3", "hashtags"]
+  "cta": "Tweet 5: una pregunta o llamada a la acción que genere respuestas (máx 280 caracteres)",
+  "hashtags": ["máx", "3", "hashtags"]
 }}
 """
 
@@ -63,6 +65,7 @@ You are writing the weekly technology briefing section for a B2B newsletter.
 Subscribers are senior decision-makers (CTOs, VPs of Engineering, founders).
 Tone: Executive briefing style — concise, curated, high-signal. No hype.
 Goal: Be the most useful email they read this week.
+Language: Write your entire response in Spanish as spoken in Mexico (es-MX).
 
 TOPIC: {topic_label}
 KEY THEMES: {keywords}
@@ -71,9 +74,9 @@ TRENDING CONTENT REFERENCES:
 
 Return a valid JSON object with EXACTLY these keys (no extra keys, no markdown fences):
 {{
-  "hook": "Subject line + one-sentence preview text separated by ' | ' (make them open the email)",
-  "body": "Newsletter section: 200-300 words. 3 key takeaways with bold markdown headers (**Header:**). High signal, no padding.",
-  "cta": "One specific action for the reader this week (max 25 words)",
+  "hook": "Asunto del correo + texto de vista previa separados por ' | ' (que inviten a abrirlo)",
+  "body": "Sección del newsletter: 200-300 palabras. 3 puntos clave con encabezados en markdown en negritas (**Encabezado:**). Alta señal, sin relleno.",
+  "cta": "Una acción específica para el lector esta semana (máx 25 palabras)",
   "hashtags": []
 }}
 """
