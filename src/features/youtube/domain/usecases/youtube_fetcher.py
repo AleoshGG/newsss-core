@@ -251,7 +251,7 @@ class YouTubeFetcherUseCase:
                     t_list = api.list(video_id)
                     found = None
 
-                    # Try preferred languages first
+                    # Step 1: Try preferred languages natively
                     for lang in langs_to_try:
                         try:
                             found = t_list.find_transcript([lang])
@@ -259,7 +259,20 @@ class YouTubeFetcherUseCase:
                         except Exception:
                             pass
 
-                    # Fallback: get ANY available transcript (LLM will translate later)
+                    # Step 2: Try translating any available transcript to a preferred language
+                    if not found:
+                        for t in t_list:
+                            if t.is_translatable:
+                                for lang in langs_to_try:
+                                    try:
+                                        found = t.translate(lang)
+                                        break
+                                    except Exception:
+                                        pass
+                            if found:
+                                break
+
+                    # Step 3: Fallback — get ANY available transcript (LLM will translate later)
                     if not found:
                         for t in t_list:
                             found = t
@@ -272,6 +285,7 @@ class YouTubeFetcherUseCase:
                 except Exception:
                     pass
                 return 'Transcript not available'
+
 
             transcript = await asyncio.to_thread(fetch_t)
 
