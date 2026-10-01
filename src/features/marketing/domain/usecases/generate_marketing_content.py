@@ -103,13 +103,27 @@ class GenerateMarketingContentUseCase:
     Supported campaign types: linkedin_post | twitter_thread | email_newsletter
     """
 
+    # Aliases accepted from the GraphQL API — maps short names to canonical keys
+    _ALIASES: dict[str, str] = {
+        "twitter": "twitter_thread",
+        "linkedin": "linkedin_post",
+        "email": "email_newsletter",
+    }
+
     def __init__(
         self,
         llm: LLMClient,
         campaign_type: Literal["linkedin_post", "twitter_thread", "email_newsletter"] = "linkedin_post",
     ) -> None:
         self._llm = llm
-        self._campaign_type = campaign_type
+        # Normalize alias → canonical key (e.g. "twitter" → "twitter_thread")
+        self._campaign_type = self._ALIASES.get(campaign_type, campaign_type)
+        if self._campaign_type not in CAMPAIGN_PROMPTS:
+            valid = list(CAMPAIGN_PROMPTS.keys()) + list(self._ALIASES.keys())
+            raise ValueError(
+                f"Invalid campaign_type '{campaign_type}'. "
+                f"Valid values: {valid}"
+            )
 
     async def execute(self, cluster: ContentCluster) -> MarketingCampaign:
         """Generates a MarketingCampaign for the given ContentCluster."""

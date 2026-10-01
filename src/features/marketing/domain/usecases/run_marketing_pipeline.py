@@ -24,6 +24,7 @@ class PipelineConfig:
     min_intent_score: float = 0.25
     n_clusters: int = 5
     campaign_type: Literal["linkedin_post", "twitter_thread", "email_newsletter"] = "linkedin_post"
+    # Also accepted as aliases: "twitter" → "twitter_thread", "linkedin" → "linkedin_post", "email" → "email_newsletter"
     translate_non_english: bool = True
 
 
