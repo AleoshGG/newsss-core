@@ -246,9 +246,11 @@ class YouTubeFetcherUseCase:
             # youtube_transcript_api is synchronous by default, we wrap in to_thread
             def fetch_t():
                 try:
-                    t_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                    # v1.x API: use an instance, not static class methods
+                    api = YouTubeTranscriptApi()
+                    t_list = api.list(video_id)
                     found = None
-                    
+
                     # Try preferred languages first
                     for lang in langs_to_try:
                         try:
@@ -256,16 +258,17 @@ class YouTubeFetcherUseCase:
                             break
                         except Exception:
                             pass
-                    
+
                     # Fallback: get ANY available transcript (LLM will translate later)
                     if not found:
                         for t in t_list:
                             found = t
                             break
-                            
+
                     if found:
+                        fetched = found.fetch()
                         formatter = TextFormatter()
-                        return formatter.format_transcript(found.fetch()).replace('\n', ' ').strip()
+                        return formatter.format_transcript(fetched).replace('\n', ' ').strip()
                 except Exception:
                     pass
                 return 'Transcript not available'

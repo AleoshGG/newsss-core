@@ -24,7 +24,19 @@ class GoogleNewsFetcherUseCase:
         config = await self.repository.get_config()
 
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
-        async with httpx.AsyncClient(limits=limits, follow_redirects=True, timeout=15.0) as client:
+        async with httpx.AsyncClient(
+            limits=limits,
+            follow_redirects=True,
+            timeout=15.0,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "es-MX,es;q=0.9,en;q=0.8",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
+        ) as client:
             # Phase 1: Fetch 2 RSS feeds concurrently
             entries = await self._fetch_rss_feeds(client, config)
             if not entries:
@@ -101,6 +113,7 @@ class GoogleNewsFetcherUseCase:
 
     async def _scrape_articles(self, client: httpx.AsyncClient, entries: List, max_results: int) -> List[GoogleNewsArticleDataEntity]:
         """Scrape og:image and readable article text for each RSS entry."""
+        import trafilatura
         from bs4 import BeautifulSoup
         try:
             from googlenewsdecoder import gnews_decoder_async
@@ -126,20 +139,27 @@ class GoogleNewsFetcherUseCase:
             try:
                 r = await client.get(real_url, timeout=10.0, follow_redirects=True)
                 if r.status_code == 200:
-                    soup = BeautifulSoup(r.text, "lxml")
+                    html = r.text
+                    soup = BeautifulSoup(html, "lxml")
 
                     # Extract og:image
                     og_tag = soup.find("meta", property="og:image")
                     if og_tag:
                         image_url = og_tag.get("content")
 
-                    # Extract article text — remove noise tags first
-                    for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
-                        tag.decompose()
-
-                    article_tag = soup.find("article") or soup.find("main")
-                    if article_tag:
-                        content = article_tag.get_text(separator=" ", strip=True)[:5000]
+                    # Strategy A: trafilatura — semantic article extraction (more robust)
+                    extracted = trafilatura.extract(
+                        html, include_comments=False, include_tables=False
+                    )
+                    if extracted and len(extracted.strip()) > 100:
+                        content = extracted.strip()[:5000]
+                    else:
+                        # Strategy B: BeautifulSoup fallback — remove noise tags first
+                        for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+                            tag.decompose()
+                        article_tag = soup.find("article") or soup.find("main")
+                        if article_tag:
+                            content = article_tag.get_text(separator=" ", strip=True)[:5000]
             except Exception:
                 pass
 
