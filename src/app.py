@@ -5,6 +5,7 @@ from src.features.graphql_root import graphql_app
 from src.mcp_server import mcp
 
 # Import all MCP tool modules to trigger their @mcp.tool() registration
+import src.features.documentation.presentation.mcp_tools
 import src.features.youtube.presentation.mcp_tools
 import src.features.github.presentation.mcp_tools
 import src.features.google_news.presentation.mcp_tools
